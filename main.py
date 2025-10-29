@@ -3,6 +3,8 @@ from pydantic import BaseModel
 from openai import OpenAI
 import os
 from dotenv import load_dotenv
+import requests
+
 
 load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -128,19 +130,42 @@ async def generate_population_report(data: ClientAreaData):
 
 
 
+# Input Model
+class LocationCoordinates(BaseModel):
+    latitude: float
+    longitude: float
 
-class LocationRequest(BaseModel):
-    location_text: str
+
+def reverse_geocode(lat: float, lon: float) -> str:
+    """Reverse geocode latitude & longitude to get location name."""
+    url = f"https://nominatim.openstreetmap.org/reverse"
+    params = {
+        "lat": lat,
+        "lon": lon,
+        "format": "json",
+        "zoom": 10,
+        "addressdetails": 1
+    }
+    headers = {"User-Agent": "GeoAPI/1.0"}
+    response = requests.get(url, params=params, headers=headers)
+    if response.status_code == 200:
+        data = response.json()
+        return data.get("display_name", "Unknown Location")
+    return "Unknown Location"
 
 
-@app.post("/generate-tourist-info/")
-async def generate_tourist_info(data: LocationRequest):
+@app.post("/generate-tourist-info-coordinates/")
+async def generate_tourist_info_coordinates(data: LocationCoordinates):
+    # Step 1: Convert coordinates to location name
+    location_name = reverse_geocode(data.latitude, data.longitude)
+
+    # Step 2: Build prompt
     prompt = f"""
     You are an expert travel and tourism content writer.
 
     Task:
-    - Read the location information below.
-    - Create a detailed and engaging travel guide report in **valid HTML**.
+    - Create a detailed and engaging travel guide report in valid HTML for the following location:
+      "{location_name}"
     - Break it into the following sections:
       0. Introduction
       1. Location Overview
@@ -155,29 +180,27 @@ async def generate_tourist_info(data: LocationRequest):
       10. Safety & Local Etiquette
       11. Environmental Responsibility
       12. Summary
-    - Use HTML headings (<h1>, <h2>, etc.), paragraphs (<p>), bullet lists (<ul>/<li>), and tables (<table>) where appropriate.
-    - Do NOT include triple backticks, escape sequences, or markdown formatting.
-    - Output must be clean, ready-to-render HTML.
+    - Use HTML headings (<h1>, <h2>), paragraphs (<p>), bullet lists (<ul>/<li>), and tables where suitable.
+    - Do NOT include triple backticks, escape sequences, or markdown.
+    - Make the writing descriptive, informative, and persuasive, suitable for a travel magazine.
+    - Include realistic details about scenery, attractions, and travel experience in {location_name}.
+    - If specific info unavailable, use general assumptions based on that region.
 
-    - Make it sound natural and persuasive — like a travel magazine article.
-    - Include reasons *why* the visitor should explore the place (natural beauty, culture, history, adventure, etc.).
-    - If the input text includes specific spots, mention them in "Major Attractions".
-    - If any data is missing (like climate, distance, or transport info), make realistic general assumptions and note them politely.
-
-    Input Location:
-    \"\"\"{data.location_text}\"\"\"
+    Location Coordinates: Latitude {data.latitude}, Longitude {data.longitude}
     """
 
+    # Step 3: Get AI-generated HTML
     response = client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[
             {"role": "system", "content": "You are a professional HTML travel content generator."},
             {"role": "user", "content": prompt}
         ],
-        temperature=0.7  # Slightly creative for natural writing
+        temperature=0.7
     )
 
     html_output = response.choices[0].message.content.strip()
     html_output = html_output.replace("```html", "").replace("```", "").strip()
 
+    # Step 4: Return HTML response
     return Response(content=html_output, media_type="text/html")
