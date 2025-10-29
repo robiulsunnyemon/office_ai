@@ -17,7 +17,7 @@ async def root():
 
 
 class ClientProposal(BaseModel):
-    proposal_text: str
+    client_text: str
 
 @app.post("/generate-html-direct/")
 async def generate_html_direct(data: ClientProposal):
@@ -48,7 +48,7 @@ async def generate_html_direct(data: ClientProposal):
     - Respond ONLY with clean HTML, ready to render in browser.
 
     Proposal Text:
-    \"\"\"{data.proposal_text}\"\"\"
+    \"\"\"{data.client_text}\"\"\"
     """
 
     response = client.chat.completions.create(
@@ -63,5 +63,65 @@ async def generate_html_direct(data: ClientProposal):
     html_output = response.choices[0].message.content.strip()
     html_output = html_output.replace("```html", "").replace("```", "").strip()
 
+
+    return Response(content=html_output, media_type="text/html")
+
+
+
+class ClientAreaData(BaseModel):
+    client_text: str
+
+
+@app.post("/generate-population-report/")
+async def generate_population_report(data: ClientAreaData):
+    prompt = f"""
+    You are an expert population-data report writer.
+
+    Task:
+    - Read the area data below (raw client text) and produce a clear, professional population report.
+    - Break the report into the following sections (use these exact headings in the HTML):
+      0. Area Overview
+      1. Population Summary
+      2. Gender Breakdown
+      3. Age Distribution
+      4. Household & Housing
+      5. Population Density
+      6. Growth & Projections
+      7. Migration & Demographics Notes
+      8. Data Sources & Methodology
+      9. Tables (summary tables shown as HTML <table>)
+      10. Conclusions & Recommendations
+    - Include for relevant sections:
+      - Absolute counts (e.g., total population, number of males, number of females).
+      - Percentages (e.g., % male, % female, % in each age group).
+      - Basic metrics like average household size, population per km² (if area size provided), and annual growth rate (if past data provided).
+      - At least two HTML tables: one for gender & totals, one for age-groups breakdown. Use additional tables where helpful.
+    - Formatting rules:
+      - Generate valid, well-structured HTML only (<!doctype html>, <html>, <head> with a sensible <title>, and <body>).
+      - Use semantic headings (<h1>, <h2>, <h3>), paragraphs (<p>), lists (<ul>/<ol>), and tables (<table> with <thead>/<tbody>).
+      - DO NOT include triple backticks or escape characters like \\n.
+      - DO NOT output anything except the clean HTML document (no explanations, no extra notes).
+    - Data handling:
+      - If the client text includes numeric values (population counts, area in km², census years), use them directly and compute derived fields (percentages, density, growth) with clear labeled values.
+      - If some data is missing, clearly state in the relevant section which items are missing and show results that can be computed from available data.
+      - Round percentages to one decimal place and rates to two decimal places where appropriate.
+    - Example table column headers to produce: "Category", "Count", "Percentage".
+    - At the end include a short bulleted "Requirements from Client" list of any missing data needed to improve accuracy (e.g., area in km², previous census year counts, household definitions, source links).
+
+    Client Area Data:
+    \"\"\"{data.client_text}\"\"\"
+    """
+
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": "You are an expert HTML demographic data analyst."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.2
+    )
+
+    html_output = response.choices[0].message.content.strip()
+    html_output = html_output.replace("```html", "").replace("```", "").strip()
 
     return Response(content=html_output, media_type="text/html")
