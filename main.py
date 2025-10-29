@@ -129,8 +129,6 @@ async def generate_population_report(data: ClientAreaData):
     return Response(content=html_output, media_type="text/html")
 
 
-
-# Input Model
 class LocationCoordinates(BaseModel):
     latitude: float
     longitude: float
@@ -150,8 +148,8 @@ def reverse_geocode(lat: float, lon: float) -> str:
     response = requests.get(url, params=params, headers=headers)
     if response.status_code == 200:
         data = response.json()
-        return data.get("display_name", "Unknown Location")
-    return "Unknown Location"
+        return data.get("display_name", "অজানা স্থান")
+    return "অজানা স্থান"
 
 
 @app.post("/generate-tourist-info-coordinates/")
@@ -159,44 +157,48 @@ async def generate_tourist_info_coordinates(data: LocationCoordinates):
     # Step 1: Convert coordinates to location name
     location_name = reverse_geocode(data.latitude, data.longitude)
 
-    # Step 2: Build prompt
+    # Step 2: Build Bengali prompt
     prompt = f"""
-    You are an expert travel and tourism content writer.
+    আপনি একজন অভিজ্ঞ ভ্রমণ ও পর্যটন বিষয়ক কনটেন্ট লেখক।
 
-    Task:
-    - Create a detailed and engaging travel guide report in valid HTML for the following location:
-      "{location_name}"
-    - Break it into the following sections:
-      0. Introduction
-      1. Location Overview
-      2. Major Attractions
-      3. Why You Should Visit
-      4. Local Culture & Food
-      5. Best Time to Visit
-      6. Transportation & Accessibility
-      7. Accommodation Options
-      8. Activities & Experiences
-      9. Travel Tips
-      10. Safety & Local Etiquette
-      11. Environmental Responsibility
-      12. Summary
-    - Use HTML headings (<h1>, <h2>), paragraphs (<p>), bullet lists (<ul>/<li>), and tables where suitable.
-    - Do NOT include triple backticks, escape sequences, or markdown.
-    - Make the writing descriptive, informative, and persuasive, suitable for a travel magazine.
-    - Include realistic details about scenery, attractions, and travel experience in {location_name}.
-    - If specific info unavailable, use general assumptions based on that region.
+    কাজ:
+    - নিচের স্থানটির জন্য একটি বিস্তারিত, তথ্যবহুল এবং আকর্ষণীয় ভ্রমণ গাইড তৈরি করুন।
+    - আউটপুটটি অবশ্যই **পূর্ণাঙ্গ HTML** আকারে হবে।
+    - নিচের সেকশনগুলো অনুসরণ করে লিখুন:
+      0. পরিচিতি
+      1. স্থান সম্পর্কে সংক্ষিপ্ত বিবরণ
+      2. প্রধান দর্শনীয় স্থানসমূহ
+      3. কেন আপনি এখানে ভ্রমণে যাবেন
+      4. স্থানীয় সংস্কৃতি ও খাবার
+      5. ভ্রমণের উপযুক্ত সময়
+      6. যাতায়াত ও পৌঁছানোর উপায়
+      7. থাকার ব্যবস্থা
+      8. করণীয় ও অভিজ্ঞতা
+      9. ভ্রমণ পরামর্শ
+      10. নিরাপত্তা ও আচরণবিধি
+      11. পরিবেশ সচেতনতা
+      12. উপসংহার
+    - শিরোনামগুলোর জন্য <h1>, <h2> এবং অনুচ্ছেদগুলোর জন্য <p> ট্যাগ ব্যবহার করুন।
+    - প্রয়োজনমতো <ul>/<li> লিস্ট ও <table> ব্যবহার করতে পারেন।
+    - Markdown, ব্যাকটিক বা \n জাতীয় কোনো এস্কেপ ক্যারেক্টার ব্যবহার করবেন না।
+    - লেখাটি যেন প্রাকৃতিক, সাবলীল ও পাঠযোগ্য হয় — ভ্রমণ ব্লগ বা ম্যাগাজিনের মতো।
+    - জায়গাটির প্রাকৃতিক সৌন্দর্য, সংস্কৃতি, ইতিহাস, খাবার এবং মানুষ সম্পর্কে বাস্তবসম্মত তথ্য অন্তর্ভুক্ত করুন।
+    - যদি নির্দিষ্ট তথ্য পাওয়া না যায়, তবে অঞ্চলভিত্তিক বাস্তবসম্মত সাধারণ অনুমান ব্যবহার করুন।
+    - সব টেক্সট **বাংলা ভাষায়** লিখবেন, কিন্তু HTML ট্যাগ ইংরেজিতেই রাখবেন।
 
-    Location Coordinates: Latitude {data.latitude}, Longitude {data.longitude}
+    স্থান: "{location_name}"
+
+    অবস্থান (Coordinates): অক্ষাংশ {data.latitude}, দ্রাঘিমাংশ {data.longitude}
     """
 
     # Step 3: Get AI-generated HTML
     response = client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[
-            {"role": "system", "content": "You are a professional HTML travel content generator."},
+            {"role": "system", "content": "আপনি একজন পেশাদার বাংলা HTML ভ্রমণবিষয়ক কনটেন্ট জেনারেটর।"},
             {"role": "user", "content": prompt}
         ],
-        temperature=0.2
+        temperature=0.7
     )
 
     html_output = response.choices[0].message.content.strip()
