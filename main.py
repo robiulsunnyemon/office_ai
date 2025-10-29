@@ -196,7 +196,7 @@ async def generate_tourist_info_coordinates(data: LocationCoordinates):
             {"role": "system", "content": "আপনি একজন পেশাদার বাংলা HTML ভ্রমণবিষয়ক কনটেন্ট জেনারেটর।"},
             {"role": "user", "content": prompt}
         ],
-        temperature=0.7
+        temperature=0.2
     )
 
     html_output = response.choices[0].message.content.strip()
