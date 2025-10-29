@@ -70,54 +70,50 @@ async def generate_html_direct(data: ClientProposal):
 
 
 
-class ClientAreaData(BaseModel):
-    client_text: str
 
+class LocationCoordinates(BaseModel):
+    latitude: float
+    longitude: float
 
 @app.post("/generate-population-report/")
-async def generate_population_report(data: ClientAreaData):
+async def generate_population_report(data: LocationCoordinates):
     prompt = f"""
-    You are an expert population-data report writer.
+    আপনি একজন পেশাদার জনসংখ্যা বিশ্লেষক এবং রিপোর্ট লেখক।
 
-    Task:
-    - Read the area data below (raw client text) and produce a clear, professional population report.
-    - Break the report into the following sections (use these exact headings in the HTML):
-      0. Area Overview
-      1. Population Summary
-      2. Gender Breakdown
-      3. Age Distribution
-      4. Household & Housing
-      5. Population Density
-      6. Growth & Projections
-      7. Migration & Demographics Notes
-      8. Data Sources & Methodology
-      9. Tables (summary tables shown as HTML <table>)
-      10. Conclusions & Recommendations
-    - Include for relevant sections:
-      - Absolute counts (e.g., total population, number of males, number of females).
-      - Percentages (e.g., % male, % female, % in each age group).
-      - Basic metrics like average household size, population per km² (if area size provided), and annual growth rate (if past data provided).
-      - At least two HTML tables: one for gender & totals, one for age-groups breakdown. Use additional tables where helpful.
-    - Formatting rules:
-      - Generate valid, well-structured HTML only (<!doctype html>, <html>, <head> with a sensible <title>, and <body>).
-      - Use semantic headings (<h1>, <h2>, <h3>), paragraphs (<p>), lists (<ul>/<ol>), and tables (<table> with <thead>/<tbody>).
-      - DO NOT include triple backticks or escape characters like \\n.
-      - DO NOT output anything except the clean HTML document (no explanations, no extra notes).
-    - Data handling:
-      - If the client text includes numeric values (population counts, area in km², census years), use them directly and compute derived fields (percentages, density, growth) with clear labeled values.
-      - If some data is missing, clearly state in the relevant section which items are missing and show results that can be computed from available data.
-      - Round percentages to one decimal place and rates to two decimal places where appropriate.
-    - Example table column headers to produce: "Category", "Count", "Percentage".
-    - At the end include a short bulleted "Requirements from Client" list of any missing data needed to improve accuracy (e.g., area in km², previous census year counts, household definitions, source links).
+    কাজ:
+    - প্রদত্ত ভৌগোলিক স্থানাঙ্ক (latitude: {data.latitude}, longitude: {data.longitude}) অনুযায়ী ঐ এলাকার জনসংখ্যা সম্পর্কিত একটি বিস্তারিত রিপোর্ট তৈরি করুন।
+    - রিপোর্টটি নিচের বাংলা শিরোনাম অনুযায়ী ভাগ করুন:
 
-    Client Area Data:
-    \"\"\"{data.client_text}\"\"\"
+      ০. এলাকার সারসংক্ষেপ  
+      ১. মোট জনসংখ্যা  
+      ২. লিঙ্গভিত্তিক জনসংখ্যা বিশ্লেষণ  
+      ৩. বয়সভিত্তিক জনসংখ্যা বণ্টন  
+      ৪. পরিবারের সংখ্যা ও গৃহস্থালী অবস্থা  
+      ৫. জনসংখ্যার ঘনত্ব  
+      ৬. জনসংখ্যা বৃদ্ধি ও ভবিষ্যৎ পূর্বাভাস  
+      ৭. অভিবাসন ও অন্যান্য জনমিতি তথ্য  
+      ৮. তথ্যের উৎস ও সংগ্রহ পদ্ধতি  
+      ৯. টেবিল আকারে সারসংক্ষেপ (HTML <table> ব্যবহার করুন)  
+      ১০. উপসংহার ও সুপারিশ  
+
+    ফরম্যাট নির্দেশনা:
+    - কেবলমাত্র বৈধ HTML তৈরি করবেন, যাতে <html>, <head>, <body> ট্যাগ থাকবে।
+    - <h1>, <h2>, <p>, <ul>, <ol>, <table> ট্যাগ ব্যবহার করুন।
+    - কোনো backtick (```) বা \\n ব্যবহার করবেন না।
+    - কেবলমাত্র HTML কোড ফিরিয়ে দিন — কোনো অতিরিক্ত ব্যাখ্যা নয়।
+
+    ডেটা নির্দেশনা:
+    - আপনি প্রদত্ত স্থানাঙ্ক অনুযায়ী সম্ভাব্য জনসংখ্যা, লিঙ্গ অনুপাত, গড় বয়স, পরিবারের সংখ্যা, ও জনঘনত্ব সম্পর্কিত একটি অনুমান ভিত্তিক বিশ্লেষণ করবেন।
+    - প্রয়োজনে বাংলাদেশের বা নিকটবর্তী অঞ্চলের গড় তথ্য ব্যবহার করতে পারেন।
+    - শেষে "ক্লায়েন্টের কাছ থেকে প্রয়োজনীয় তথ্য" শিরোনামে একটি তালিকা দিন, যেখানে উল্লেখ করবেন কোন তথ্য পেলে রিপোর্টটি আরও নির্ভুল করা যেত।
+
+    উত্তরটি সম্পূর্ণ বাংলায় দিন।
     """
 
     response = client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[
-            {"role": "system", "content": "You are an expert HTML demographic data analyst."},
+            {"role": "system", "content": "আপনি একজন বিশেষজ্ঞ HTML রিপোর্ট লেখক।"},
             {"role": "user", "content": prompt}
         ],
         temperature=0.2
@@ -129,9 +125,8 @@ async def generate_population_report(data: ClientAreaData):
     return Response(content=html_output, media_type="text/html")
 
 
-class LocationCoordinates(BaseModel):
-    latitude: float
-    longitude: float
+
+
 
 
 def reverse_geocode(lat: float, lon: float) -> str:
