@@ -125,3 +125,59 @@ async def generate_population_report(data: ClientAreaData):
     html_output = html_output.replace("```html", "").replace("```", "").strip()
 
     return Response(content=html_output, media_type="text/html")
+
+
+
+
+class LocationRequest(BaseModel):
+    location_text: str
+
+
+@app.post("/generate-tourist-info/")
+async def generate_tourist_info(data: LocationRequest):
+    prompt = f"""
+    You are an expert travel and tourism content writer.
+
+    Task:
+    - Read the location information below.
+    - Create a detailed and engaging travel guide report in **valid HTML**.
+    - Break it into the following sections:
+      0. Introduction
+      1. Location Overview
+      2. Major Attractions
+      3. Why You Should Visit
+      4. Local Culture & Food
+      5. Best Time to Visit
+      6. Transportation & Accessibility
+      7. Accommodation Options
+      8. Activities & Experiences
+      9. Travel Tips
+      10. Safety & Local Etiquette
+      11. Environmental Responsibility
+      12. Summary
+    - Use HTML headings (<h1>, <h2>, etc.), paragraphs (<p>), bullet lists (<ul>/<li>), and tables (<table>) where appropriate.
+    - Do NOT include triple backticks, escape sequences, or markdown formatting.
+    - Output must be clean, ready-to-render HTML.
+
+    - Make it sound natural and persuasive — like a travel magazine article.
+    - Include reasons *why* the visitor should explore the place (natural beauty, culture, history, adventure, etc.).
+    - If the input text includes specific spots, mention them in "Major Attractions".
+    - If any data is missing (like climate, distance, or transport info), make realistic general assumptions and note them politely.
+
+    Input Location:
+    \"\"\"{data.location_text}\"\"\"
+    """
+
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": "You are a professional HTML travel content generator."},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.7  # Slightly creative for natural writing
+    )
+
+    html_output = response.choices[0].message.content.strip()
+    html_output = html_output.replace("```html", "").replace("```", "").strip()
+
+    return Response(content=html_output, media_type="text/html")
