@@ -9,6 +9,13 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 app = FastAPI(title="LLM Direct HTML Proposal Generator")
 
+
+@app.get("/")
+async def root():
+    return {"message": "Hello MTS"}
+
+
+
 class ClientProposal(BaseModel):
     proposal_text: str
 
