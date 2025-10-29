@@ -75,60 +75,6 @@ class LocationCoordinates(BaseModel):
     latitude: float
     longitude: float
 
-@app.post("/generate-population-report/")
-async def generate_population_report(data: LocationCoordinates):
-    prompt = f"""
-    আপনি একজন পেশাদার জনসংখ্যা বিশ্লেষক এবং রিপোর্ট লেখক।
-
-    কাজ:
-    - প্রদত্ত ভৌগোলিক স্থানাঙ্ক (latitude: {data.latitude}, longitude: {data.longitude}) অনুযায়ী ঐ এলাকার জনসংখ্যা সম্পর্কিত একটি বিস্তারিত রিপোর্ট তৈরি করুন।
-    - রিপোর্টটি নিচের বাংলা শিরোনাম অনুযায়ী ভাগ করুন:
-
-      ০. এলাকার সারসংক্ষেপ  
-      ১. মোট জনসংখ্যা  
-      ২. লিঙ্গভিত্তিক জনসংখ্যা বিশ্লেষণ  
-      ৩. বয়সভিত্তিক জনসংখ্যা বণ্টন  
-      ৪. পরিবারের সংখ্যা ও গৃহস্থালী অবস্থা  
-      ৫. জনসংখ্যার ঘনত্ব  
-      ৬. জনসংখ্যা বৃদ্ধি ও ভবিষ্যৎ পূর্বাভাস  
-      ৭. অভিবাসন ও অন্যান্য জনমিতি তথ্য  
-      ৮. তথ্যের উৎস ও সংগ্রহ পদ্ধতি  
-      ৯. টেবিল আকারে সারসংক্ষেপ (HTML <table> ব্যবহার করুন)  
-      ১০. উপসংহার ও সুপারিশ  
-
-    ফরম্যাট নির্দেশনা:
-    - কেবলমাত্র বৈধ HTML তৈরি করবেন, যাতে <html>, <head>, <body> ট্যাগ থাকবে।
-    - <h1>, <h2>, <p>, <ul>, <ol>, <table> ট্যাগ ব্যবহার করুন।
-    - কোনো backtick (```) বা \\n ব্যবহার করবেন না।
-    - কেবলমাত্র HTML কোড ফিরিয়ে দিন — কোনো অতিরিক্ত ব্যাখ্যা নয়।
-
-    ডেটা নির্দেশনা:
-    - আপনি প্রদত্ত স্থানাঙ্ক অনুযায়ী সম্ভাব্য জনসংখ্যা, লিঙ্গ অনুপাত, গড় বয়স, পরিবারের সংখ্যা, ও জনঘনত্ব সম্পর্কিত একটি অনুমান ভিত্তিক বিশ্লেষণ করবেন।
-    - প্রয়োজনে বাংলাদেশের বা নিকটবর্তী অঞ্চলের গড় তথ্য ব্যবহার করতে পারেন।
-    - শেষে "ক্লায়েন্টের কাছ থেকে প্রয়োজনীয় তথ্য" শিরোনামে একটি তালিকা দিন, যেখানে উল্লেখ করবেন কোন তথ্য পেলে রিপোর্টটি আরও নির্ভুল করা যেত।
-
-    উত্তরটি সম্পূর্ণ বাংলায় দিন।
-    """
-
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
-            {"role": "system", "content": "আপনি একজন বিশেষজ্ঞ HTML রিপোর্ট লেখক।"},
-            {"role": "user", "content": prompt}
-        ],
-        temperature=0.2
-    )
-
-    html_output = response.choices[0].message.content.strip()
-    html_output = html_output.replace("```html", "").replace("```", "").strip()
-
-    return Response(content=html_output, media_type="text/html")
-
-
-
-
-
-
 def reverse_geocode(lat: float, lon: float) -> str:
     """Reverse geocode latitude & longitude to get location name."""
     url = f"https://nominatim.openstreetmap.org/reverse"
@@ -145,6 +91,64 @@ def reverse_geocode(lat: float, lon: float) -> str:
         data = response.json()
         return data.get("display_name", "অজানা স্থান")
     return "অজানা স্থান"
+
+
+@app.post("/generate-population-report/")
+async def generate_population_report(data: LocationCoordinates):
+    location_name = reverse_geocode(data.latitude, data.longitude)
+
+    prompt = f"""
+    আপনি একজন অভিজ্ঞ জনসংখ্যা বিশ্লেষক এবং রিপোর্ট লেখক।
+
+    কাজ:
+    - নিম্নোক্ত স্থান "{location_name}" অনুযায়ী একটি বিস্তারিত এবং তথ্যবহুল জনসংখ্যা রিপোর্ট তৈরি করুন।
+    - রিপোর্টটি সম্পূর্ণ বাংলায় হবে এবং HTML ফরম্যাটে থাকবে।
+    - নিচের শিরোনাম অনুসরণ করুন:
+
+      ০. এলাকার সারসংক্ষেপ  
+      ১. মোট জনসংখ্যা  
+      ২. লিঙ্গভিত্তিক জনসংখ্যা বিশ্লেষণ  
+      ৩. বয়সভিত্তিক জনসংখ্যা বণ্টন  
+      ৪. পরিবারের সংখ্যা ও গৃহস্থালী অবস্থা  
+      ৫. জনসংখ্যার ঘনত্ব  
+      ৬. জনসংখ্যা বৃদ্ধি ও ভবিষ্যৎ পূর্বাভাস  
+      ৭. অভিবাসন ও অন্যান্য জনমিতি তথ্য  
+      ৮. তথ্যের উৎস ও সংগ্রহ পদ্ধতি  
+      ৯. টেবিল আকারে সারসংক্ষেপ (<table>)  
+      ১০. উপসংহার ও সুপারিশ
+
+    নির্দেশাবলী:
+    - HTML <html>, <head>, <body>, <h1>, <h2>, <p>, <ul>/<li>, <table> ব্যবহার করুন।
+    - কোনো Markdown, backtick বা \n ব্যবহার করবেন না।
+    - রিপোর্টের শুরুতে অবশ্যই স্থানটির নাম উল্লেখ করতে হবে।
+    - তথ্যের অভাব থাকলে, অনুমান ভিত্তিক বা নিকটবর্তী অঞ্চলের তথ্য ব্যবহার করতে পারেন।
+    - শেষে "ক্লায়েন্টের কাছ থেকে প্রয়োজনীয় তথ্য" শিরোনামে একটি ছোট তালিকা অন্তর্ভুক্ত করুন।
+
+    স্থানাঙ্ক: Latitude {data.latitude}, Longitude {data.longitude}
+    """
+
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": "আপনি একজন পেশাদার বাংলা HTML জনসংখ্যা রিপোর্ট লেখক।"},
+            {"role": "user", "content": prompt}
+        ],
+        temperature=0.2
+    )
+
+    html_output = response.choices[0].message.content.strip()
+    html_output = html_output.replace("```html", "").replace("```", "").strip()
+
+    return Response(content=html_output, media_type="text/html")
+
+
+
+
+
+
+
+
+
 
 
 @app.post("/generate-tourist-info-coordinates/")
