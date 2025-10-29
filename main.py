@@ -122,7 +122,6 @@ async def generate_population_report(data: LocationCoordinates):
     - কোনো Markdown, backtick বা \n ব্যবহার করবেন না।
     - রিপোর্টের শুরুতে অবশ্যই স্থানটির নাম উল্লেখ করতে হবে।
     - তথ্যের অভাব থাকলে, অনুমান ভিত্তিক বা নিকটবর্তী অঞ্চলের তথ্য ব্যবহার করতে পারেন।
-    - শেষে "ক্লায়েন্টের কাছ থেকে প্রয়োজনীয় তথ্য" শিরোনামে একটি ছোট তালিকা অন্তর্ভুক্ত করুন।
 
     স্থানাঙ্ক: Latitude {data.latitude}, Longitude {data.longitude}
     """
